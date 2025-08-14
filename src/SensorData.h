@@ -12,6 +12,12 @@
 
 #ifndef CMBTL_SENSOR_DATA_H
 #define CMBTL_SENSOR_DATA_H
+
+  // Forward declarations for test classes
+  class SensorDataTests_runtimeEncodeData_Test;
+  class SensorDataTests_runtimeEncodeAndDecodeData_Test;
+
+
 namespace cmbtl {
 
 
@@ -42,6 +48,10 @@ namespace cmbtl {
      */
     template<typename... SensorInfos>
     struct SensorData<std::tuple<SensorInfos...>, typename std::enable_if<is_sensor_info_tuple<std::tuple<SensorInfos...>>::value>::type>  {
+        // Allow GTest framework to test private methods
+        friend class ::SensorDataTests_runtimeEncodeData_Test;
+        friend class ::SensorDataTests_runtimeEncodeAndDecodeData_Test;
+
         // Name declaration for ease of use
         using SensorsTuple = std::tuple<SensorInfos...>;
 
@@ -210,14 +220,7 @@ namespace cmbtl {
          */
         template<size_t InstructionsSensorCount>
         inline BinaryBuffer encodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
-            if (InstructionsSensorCount > NUM_SENSORS) {
-                std::ostringstream err;
-                err << "The number of sensors specified in parameter instructions: " 
-                << instructions.to_string() << " (" << instructions.size() << ")" 
-                << std::endl
-                << "is greater than NUM_SENSORS of SensorData: " << NUM_SENSORS;
-                throw std::invalid_argument(err.str());
-            }
+            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
             //Calculate total number of bits needed for the packet
             const uint32_t total_num_encoded_bits = packetEncodedBitSize(instructions);
 
@@ -249,14 +252,7 @@ namespace cmbtl {
          */
         template<size_t InstructionsSensorCount>
         inline void decodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions, BinaryBuffer const &buffer) {
-            if (InstructionsSensorCount > NUM_SENSORS) {
-                std::ostringstream err;
-                err << "The number of sensors specified in parameter instructions: " 
-                << instructions.to_string() << " (" << instructions.size() << ")" 
-                << std::endl
-                << "is greater than NUM_SENSORS of SensorData: " << NUM_SENSORS;
-                throw std::invalid_argument(err.str());
-            }
+            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
 
             //Calculate total number of bits needed for the packet
             const uint32_t total_num_encoded_bits = packetEncodedBitSize(instructions);
@@ -316,21 +312,14 @@ namespace cmbtl {
         decodeFunctionTable(createDecodeDataTable(boost::mp11::make_index_sequence<NUM_SENSORS>{}))
         {};
 
-        //TODO: Make private again after testing
-        public:
+        private:
             //Runtime access to encode function of sensor infos
             inline void encodeDataRuntime(size_t sensor_index, BinaryBuffer &buffer) {
-                if (sensor_index >= NUM_SENSORS) {
-                    throw std::invalid_argument("Parameter: sensor_index must be less than NUM_SENSORS");
-                }
                 //Call encodeSensorData
                 (this->*encodeFunctionTable[sensor_index])(buffer);
             }
 
             inline void decodeDataRuntime(size_t sensor_index, BinaryBuffer const &buffer) {
-                if (sensor_index >= NUM_SENSORS) {
-                    throw std::invalid_argument("Parameter: sensor_index must be less than NUM_SENSORS");
-                }
                 //Call decodeSensorData
                 (this->*decodeFunctionTable[sensor_index])(buffer);
             }
@@ -338,7 +327,7 @@ namespace cmbtl {
             template<size_t InstructionsSensorCount>
             static inline uint32_t const packetEncodedBitSize(packet::PacketInstructions<InstructionsSensorCount> const &instructions) { 
                 uint32_t bit_size = 0;
-                for (int i = 0; i < instructions.size(); i++) {
+                for (size_t i = 0; i < instructions.size(); i++) {
                     if (instructions[i] == true) {
                         bit_size += encodedSizeTable.at(i);
                     }
