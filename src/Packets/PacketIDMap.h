@@ -1,9 +1,7 @@
 #include "PacketInstructions.h"
 #include <unordered_map>
 #include <initializer_list>
-#include <stdexcept>
 #include <string>
-#include <sstream>
 #ifndef CMBTL_PACKET_ID_MAP_H
 #define CMBTL_PACKET_ID_MAP_H
 namespace cmbtl {
@@ -52,17 +50,15 @@ namespace cmbtl {
             }
 
             /**
-             * @brief Associates the instructions with a unique ID and adds the pair to the map, throws an exception if that packet is already present
+             * @brief Associates the instructions with a unique ID and adds the pair to the map
              * 
              * @param packetInstructions: packet instructions to add to the map
+             * @return true if successfully added, false if packet instructions already exist
              */
-            inline void addPacketInstructions(const PacketInstructions<NUM_SENSORS>& packetInstructions) {
-                // Throw error if packet is already present
+            inline bool addPacketInstructions(const PacketInstructions<NUM_SENSORS>& packetInstructions) {
+                // Return false if packet is already present
                 if (IDMap.find(packetInstructions) != IDMap.end()) {
-                    std::stringstream msg;
-                    msg << "Attempting to add packet instructions with index: " << count << " which is not unique (already present in map)!";
-                    msg << " This will result in an unused ID number, aborting.";
-                    throw std::invalid_argument(msg.str());
+                    return false;
                 } else {
                     // Insert pair to map
                     IDMap[packetInstructions] = count;
@@ -72,6 +68,7 @@ namespace cmbtl {
 
                     // Increment count for unique ID generation
                     count++;
+                    return true;
                 }
             }
 
@@ -80,33 +77,31 @@ namespace cmbtl {
              * 
              * @param packetInstructions: Instructions for which we would like to retrieve its unique associated ID
              * 
-             * @return The unique ID of the packet instructions
+             * @return The unique ID of the packet instructions, or UINT32_MAX if not found
              */
             inline uint32_t getID(const PacketInstructions<NUM_SENSORS>& packetInstructions) const {
                 if (IDMap.find(packetInstructions) == IDMap.end()) {
-                    std::stringstream msg;
-                    msg << "The specified packet instructions:\n" << packetInstructions.to_string() << "\n\ndoes not exist!";
-                    throw std::invalid_argument(msg.str());
+                    return UINT32_MAX;
                 }
 
                 return IDMap.at(packetInstructions);
             }
 
             /**
-             * @brief returns the packet instructions associated with passed in ID
+             * @brief Gets the packet instructions associated with the given ID
              * 
-             * @param ID: ID of the instructions to return
+             * @param ID: ID of the instructions to retrieve
+             * @param out_instructions: Reference to store the found instructions (only modified if ID exists)
              * 
-             * @return: Packet instruction associated with the ID
+             * @return: true if ID was found and instructions were retrieved, false otherwise
              */
-            inline const PacketInstructions<NUM_SENSORS>& getInstructionsByID(uint32_t ID) const {
-                // If ID DNE
-                if (InstructionsMap.find(ID) == InstructionsMap.end()) {
-                    std::stringstream msg;
-                    msg << "This ID number: " << ID << " is not associated with any packet instructions!";
-                    throw std::invalid_argument(msg.str());
+            inline bool getInstructionsByID(uint32_t ID, PacketInstructions<NUM_SENSORS>& out_instructions) const {
+                auto it = InstructionsMap.find(ID);
+                if (it == InstructionsMap.end()) {
+                    return false;
                 }
-                return InstructionsMap.at(ID);
+                out_instructions = it_second;
+                return true;
             }
 
             /**
