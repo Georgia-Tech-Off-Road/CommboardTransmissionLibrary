@@ -249,19 +249,18 @@ namespace cmbtl {
          * 
          * @tparam InstructionsSensorCount: Number of sensors that the instructions contain (included AND excluded)
          * 
+         * @return true if the packet instructions could be successfully decoded, false otherwise
+         * 
          */
         template<size_t InstructionsSensorCount>
-        inline void decodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions, BinaryBuffer const &buffer) {
+        inline bool decodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions, BinaryBuffer const &buffer) {
             static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
 
             //Calculate total number of bits needed for the packet
             const uint32_t total_num_encoded_bits = packetEncodedBitSize(instructions);
 
             if (total_num_encoded_bits != buffer.getCapacity() - buffer.getReadCursorPos()) {
-                std::ostringstream err;
-                err << "The calculated bit size of packet (from SensorInfos): " << total_num_encoded_bits
-                << ". Does not equal the capacity of function parameter buffer: " << buffer.getCapacity();
-                throw std::invalid_argument(err.str());
+                return false;
             }
 
             //Iterate through instructions
@@ -270,6 +269,8 @@ namespace cmbtl {
                     decodeDataRuntime(i, buffer);
                 }
             }
+
+            return true;
         }
 
         /**

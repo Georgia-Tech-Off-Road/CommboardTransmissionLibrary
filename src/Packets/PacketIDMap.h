@@ -100,7 +100,7 @@ namespace cmbtl {
                 if (it == InstructionsMap.end()) {
                     return false;
                 }
-                out_instructions = it_second;
+                out_instructions = it->second;
                 return true;
             }
 
