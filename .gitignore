@@ -14,7 +14,9 @@ CMakeUserPresets.json
 DartConfiguration.tcl
 
 # Generated Test Files
-*Test?
+*Test
+# Except for any unit test code
+!*Test.cpp
 
 #
 lib/
