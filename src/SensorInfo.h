@@ -25,6 +25,9 @@ namespace cmbtl {
     template<typename RV>
     void defaultJSONSerialize(const RV&, std::stringstream&);
 
+    template<std::string(getName)(), typename RV>
+    void JSONSerializeWithName(const RV& val, std::stringstream& ss);
+
     //--------------- Define Data Types for Different Sensors ---------------------------------
     /**
      * @brief Metaprograming type to store sensor information at compile time
@@ -78,6 +81,9 @@ namespace cmbtl {
 
     template<typename SV, typename RV, uint32_t BIT_SIZE, void (*JSONSERIALIZE)(const RV&, std::stringstream&) = defaultJSONSerialize<RV>>
     using DefaultSensor = SensorInfo<SV, RV, BIT_SIZE, defaultEncode<SV, BIT_SIZE>, defaultDecode<SV, BIT_SIZE>, defaultConvert<SV, RV>, JSONSERIALIZE>;
+
+    template<typename SV, typename RV, uint32_t BIT_SIZE, std::string (*getName)()>
+    using DefaultSensorWithName = SensorInfo<SV, RV, BIT_SIZE, defaultEncode<SV, BIT_SIZE>, defaultDecode<SV, BIT_SIZE>, defaultConvert<SV, RV>, JSONSerializeWithName<getName>>;
 
     //----------------------- DEFINE COMMONLY USED FUNCTIONS ------------------------------------
     
@@ -133,6 +139,11 @@ namespace cmbtl {
     template<typename RV>
     void defaultJSONSerialize(const RV& val, std::stringstream& ss) {
         ss << "NO_SERIALIZATION_DEFINED: " << "TRUE"; 
+    }
+
+    template<std::string(*getName)(), typename RV>
+    void JSONSerializeWithName(const RV& val, std::stringstream& ss) {
+        ss << "\"" << getName() << "\": " << val;
     }
 
 
