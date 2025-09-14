@@ -295,6 +295,16 @@ namespace cmbtl {
             return ss.str().c_str();
 
         }
+        template<size_t InstructionsSensorCount>
+        std::string serializeDataToJSONPacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
+            std::stringstream ss;
+            ss << "{" << "\n";
+            std::size_t sensor_count = instructions.count();
+            serializeDataToJSONPacket(boost::mp11::make_index_sequence<NUM_SENSORS>, ss, instructions);
+            ss << "}";
+
+            return ss.str().c_str();
+        }
 
         /**
          * @brief Return the data at index N converted to its "real value"
@@ -344,7 +354,22 @@ namespace cmbtl {
             template<size_t... Is>
             inline void serializeDataToJSONImpl(boost::mp11::index_sequence<Is...>, std::stringstream& ss) const {
                 //Dummy array to call methods
-                int dummy[] = {(seralizeSensorToJSON<Is>(convertedDataAt<Is>(), ss, !(Is < NUM_SENSORS - 1)), 0)...};
+                int dummy[] = {(serializeSensorToJSON<Is>(convertedDataAt<Is>(), ss, !(Is < NUM_SENSORS - 1)), 0)...};
+                (void)dummy;
+            }   
+
+            template<size_t... Is>
+            inline void serializeDataToJSONPacketImpl(boost::mp11::index_sequence<Is...>, std::stringstream&ss, packet::PacketInstructions<NUM_SENSORS> packet) {
+                size_t sensors_encoded = 0;
+                // Counts number of sensors set in packet instructions
+                size_t num_sensors = packet.count();
+                //Dummy array to call methods
+                int dummy[] = {([=, &sensors_encoded](){
+                    if (packet[Is]) {
+                        serializeSensorToJSON<Is>(convertedDataAt<Is>(), ss, !(sensors_encoded < num_sensors - 1));
+                        sensors_encoded++;
+                    }
+                }(), 0)...};
                 (void)dummy;
             }
 
@@ -352,7 +377,7 @@ namespace cmbtl {
              * Calls serialiseToJSON on sensor N
              */
             template<size_t N>
-            inline void seralizeSensorToJSON(RVTypeAt<N> convertedData, std::stringstream& ss, bool isFinal) const {
+            inline void serializeSensorToJSON(RVTypeAt<N> convertedData, std::stringstream& ss, bool isFinal) const {
                 ss << "\t";
                 SensorAt<N>::serializeToJSON(convertedData, ss);
                 if (!isFinal) {
@@ -372,6 +397,11 @@ namespace cmbtl {
             template<size_t ... Is>
             static constexpr inline std::array<void (SensorData::*)(BinaryBuffer const &), NUM_SENSORS> createDecodeDataTable(boost::mp11::index_sequence<Is...>) {
                 return {&SensorData::template decodeSensorData<Is>...};
+            }
+
+            template<size_t ... Is>
+            static constexpr inline std::array<void (SensorData::*)(), NUM_SENSORS> createSerializeSensorToJSONTable(boost::mp11::index_sequence<Is...>) {
+                return {&SensorData::template serializeSensorToJSON<Is>...};
             }
     };
 
