@@ -300,7 +300,7 @@ namespace cmbtl {
             std::stringstream ss;
             ss << "{" << "\n";
             std::size_t sensor_count = instructions.count();
-            serializeDataToJSONPacket(boost::mp11::make_index_sequence<NUM_SENSORS>, ss, instructions);
+            serializeDataToJSONPacketImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, ss, instructions);
             ss << "}";
 
             return ss.str().c_str();
