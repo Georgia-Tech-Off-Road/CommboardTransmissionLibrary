@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <stdexcept>
 #include <memory>
+#include <typeinfo>
+#include <iostream>
 
 #ifndef CMBTL_SENSOR_DATA_H
 #define CMBTL_SENSOR_DATA_H
@@ -316,6 +318,38 @@ namespace cmbtl {
         }
 
         /**
+         * @brief Print configuration reference for this SensorData type
+         *
+         * Prints a summary of the sensor configuration including:
+         * - Number of sensors
+         * - Total encoded size (bits and bytes)
+         * - Per-sensor information (stored type, real type, bit size)
+         *
+         * @param os: Output stream to print to (default: std::cout)
+         */
+        void printConfiguration(std::ostream& os = std::cout) const {
+            // Calculate total encoded size
+            uint32_t totalBits = 0;
+            for (size_t i = 0; i < NUM_SENSORS; i++) {
+                totalBits += encodedSizeTable[i];
+            }
+            uint32_t totalBytes = (totalBits + 7) / 8; // Round up to nearest byte
+
+            // Print header
+            os << "==================================================\n";
+            os << "SensorData Configuration Reference\n";
+            os << "==================================================\n";
+            os << "Number of Sensors: " << NUM_SENSORS << "\n";
+            os << "Total Encoded Size: " << totalBits << " bits (" << totalBytes << " bytes)\n";
+            os << "\n";
+
+            // Print individual sensor configurations
+            printAllSensorConfigs(boost::mp11::make_index_sequence<NUM_SENSORS>{}, os);
+
+            os << "==================================================\n";
+        }
+
+        /**
          * @brief Constructor which initializes crucial variables to default values
          */
         SensorData() :
@@ -402,6 +436,25 @@ namespace cmbtl {
             template<size_t ... Is>
             static constexpr inline std::array<void (SensorData::*)(), NUM_SENSORS> createSerializeSensorToJSONTable(boost::mp11::index_sequence<Is...>) {
                 return {&SensorData::template serializeSensorToJSON<Is>...};
+            }
+
+            // Helper methods for printConfiguration()
+            template<size_t... Is>
+            void printAllSensorConfigs(boost::mp11::index_sequence<Is...>, std::ostream& os) const {
+                // Use dummy array trick to call printSensorConfig for each sensor
+                int dummy[] = {(printSensorConfig<Is>(os), 0)...};
+                (void)dummy; // Suppress unused variable warning
+            }
+
+            template<size_t N>
+            void printSensorConfig(std::ostream& os) const {
+                using SensorType = SensorAt<N>;
+
+                os << "Sensor #" << N << ":\n";
+                os << "  Stored Type:  " << typeid(typename SensorType::STORED_VALUE).name() << "\n";
+                os << "  Real Type:    " << typeid(typename SensorType::REAL_VALUE).name() << "\n";
+                os << "  Bit Size:     " << SensorType::ENCODED_BIT_SIZE << "\n";
+                os << "\n";
             }
     };
 

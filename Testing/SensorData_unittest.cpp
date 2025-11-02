@@ -468,3 +468,43 @@ TEST(SensorDataTests, SerializeDiagnosticDataPacketToJSON) {
     // Output for manual inspection (optional)
     std::cout << "DiagnosticData JSON:\n" << json << std::endl;
 }
+
+// ================================================================================================
+// Tests for printConfiguration
+// ================================================================================================
+
+// Test configuration printing
+TEST(SensorDataTests, PrintConfiguration) {
+    TestSensorDataType sensorData;
+
+    // Print configuration to stdout
+    std::cout << "\n=== Testing printConfiguration() ===\n";
+    sensorData.printConfiguration();
+
+    // Also test printing to a stringstream to verify it works with different streams
+    std::stringstream ss;
+    sensorData.printConfiguration(ss);
+    std::string configOutput = ss.str();
+
+    // Verify the output contains expected information
+    ASSERT_NE(configOutput.find("SensorData Configuration Reference"), std::string::npos);
+    ASSERT_NE(configOutput.find("Number of Sensors: 6"), std::string::npos);
+    ASSERT_NE(configOutput.find("Total Encoded Size:"), std::string::npos);
+    ASSERT_NE(configOutput.find("bits"), std::string::npos);
+    ASSERT_NE(configOutput.find("bytes"), std::string::npos);
+
+    // Verify all sensors are listed
+    ASSERT_NE(configOutput.find("Sensor #0"), std::string::npos);
+    ASSERT_NE(configOutput.find("Sensor #1"), std::string::npos);
+    ASSERT_NE(configOutput.find("Sensor #2"), std::string::npos);
+    ASSERT_NE(configOutput.find("Sensor #3"), std::string::npos);
+    ASSERT_NE(configOutput.find("Sensor #4"), std::string::npos);
+    ASSERT_NE(configOutput.find("Sensor #5"), std::string::npos);
+
+    // Verify each sensor has type and bit size information
+    ASSERT_NE(configOutput.find("Stored Type:"), std::string::npos);
+    ASSERT_NE(configOutput.find("Real Type:"), std::string::npos);
+    ASSERT_NE(configOutput.find("Bit Size:"), std::string::npos);
+
+    std::cout << "=== Configuration Output ===\n" << configOutput << std::endl;
+}
