@@ -364,7 +364,7 @@ namespace cmbtl {
                 // Counts number of sensors set in packet instructions
                 size_t num_sensors = packet.count();
                 //Dummy array to call methods
-                int dummy[] = {([=, &sensors_encoded](){
+                int dummy[] = {([=, &sensors_encoded, &ss](){
                     if (packet[Is]) {
                         serializeSensorToJSON<Is>(convertedDataAt<Is>(), ss, !(sensors_encoded < num_sensors - 1));
                         sensors_encoded++;
