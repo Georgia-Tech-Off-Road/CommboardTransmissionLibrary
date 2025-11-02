@@ -17,3 +17,4 @@ function(add_cmbtl_test test_name source_file)
 endfunction()
 
 add_cmbtl_test(SensorInfoTests SensorInfo_unittest.cpp)
+add_cmbtl_test(SensorDataTests SensorData_unittest.cpp)
