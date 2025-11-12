@@ -1,5 +1,6 @@
 #include "SensorInfo.h"
 #include "boost_mp11_algorithm.hpp"
+#include "boost_type_index.hpp"
 #include "MP.h"
 #include "Packets/PacketInstructions.h"
 #include <tuple>
@@ -308,6 +309,17 @@ namespace cmbtl {
             return ss.str().c_str();
         }
 
+        template<size_t N>
+        void printSensorConfig(std::ostream& os) const {
+            using SensorType = SensorAt<N>;
+
+            os << "Sensor #" << N << ":\n";
+            os << "  Stored Type:  " << boost::typeindex::type_id<typename SensorType::STORED_VALUE>().pretty_name() << "\n";
+            os << "  Real Type:    " << boost::typeindex::type_id<typename SensorType::REAL_VALUE>().pretty_name() << "\n";
+            os << "  Bit Size:     " << SensorType::ENCODED_BIT_SIZE << "\n";
+            os << "\n";
+        }
+
         /**
          * @brief Return the data at index N converted to its "real value"
          */
@@ -327,26 +339,8 @@ namespace cmbtl {
          *
          * @param os: Output stream to print to (default: std::cout)
          */
-        void printConfiguration(std::ostream& os = std::cout) const {
-            // Calculate total encoded size
-            uint32_t totalBits = 0;
-            for (size_t i = 0; i < NUM_SENSORS; i++) {
-                totalBits += encodedSizeTable[i];
-            }
-            uint32_t totalBytes = (totalBits + 7) / 8; // Round up to nearest byte
-
-            // Print header
-            os << "==================================================\n";
-            os << "SensorData Configuration Reference\n";
-            os << "==================================================\n";
-            os << "Number of Sensors: " << NUM_SENSORS << "\n";
-            os << "Total Encoded Size: " << totalBits << " bits (" << totalBytes << " bytes)\n";
-            os << "\n";
-
-            // Print individual sensor configurations
-            printAllSensorConfigs(boost::mp11::make_index_sequence<NUM_SENSORS>{}, os);
-
-            os << "==================================================\n";
+        void printConfig(packet::PacketInstructions<NUM_SENSORS> const &instructions, std::ostream& os = std::cout) const {
+            printConfigImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, os, instructions);
         }
 
         /**
@@ -390,7 +384,19 @@ namespace cmbtl {
                 //Dummy array to call methods
                 int dummy[] = {(serializeSensorToJSON<Is>(convertedDataAt<Is>(), ss, !(Is < NUM_SENSORS - 1)), 0)...};
                 (void)dummy;
-            }   
+            }
+
+            template<size_t... Is>
+            inline void printConfigImpl(boost::mp11::index_sequence<Is...>, std::ostream& os, packet::PacketInstructions<NUM_SENSORS> const &packet) const {
+                // Dummy array to call methods
+                int dummy[] = {([=, &os]() {
+                    // If sensor index is in the packet instructions, print its config line
+                    if (packet[Is]) {
+                        printSensorConfig<Is>(os);
+                    }
+                }(), 0)...};
+                (void)dummy;
+            }
 
             template<size_t... Is>
             inline void serializeDataToJSONPacketImpl(boost::mp11::index_sequence<Is...>, std::stringstream&ss, packet::PacketInstructions<NUM_SENSORS> packet) {
@@ -436,26 +442,7 @@ namespace cmbtl {
             template<size_t ... Is>
             static constexpr inline std::array<void (SensorData::*)(), NUM_SENSORS> createSerializeSensorToJSONTable(boost::mp11::index_sequence<Is...>) {
                 return {&SensorData::template serializeSensorToJSON<Is>...};
-            }
-
-            // Helper methods for printConfiguration()
-            template<size_t... Is>
-            void printAllSensorConfigs(boost::mp11::index_sequence<Is...>, std::ostream& os) const {
-                // Use dummy array trick to call printSensorConfig for each sensor
-                int dummy[] = {(printSensorConfig<Is>(os), 0)...};
-                (void)dummy; // Suppress unused variable warning
-            }
-
-            template<size_t N>
-            void printSensorConfig(std::ostream& os) const {
-                using SensorType = SensorAt<N>;
-
-                os << "Sensor #" << N << ":\n";
-                os << "  Stored Type:  " << typeid(typename SensorType::STORED_VALUE).name() << "\n";
-                os << "  Real Type:    " << typeid(typename SensorType::REAL_VALUE).name() << "\n";
-                os << "  Bit Size:     " << SensorType::ENCODED_BIT_SIZE << "\n";
-                os << "\n";
-            }
+            }      
     };
 
     template<typename T>
