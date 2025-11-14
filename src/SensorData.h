@@ -277,6 +277,35 @@ namespace cmbtl {
         }
 
         /**
+         * @brief Records the sensors specified by the packet into a buffer. Best for quickly recording, not as space-efficient as encodePacket()
+         * 
+         * @param buffer: Buffer to record data to
+         * 
+         * @tparam InstructionsSensorCount: Number of sensors that the instructions contain (included AND excluded)
+         */
+        template<size_t InstructionsSensorCount>
+        void recordData(unsigned char* buffer, packet::PacketInstructions<InstructionsSensorCount> const &instructions) const {
+            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
+
+            recordDataImpl(boost::mp11::make_index_sequence<InstructionsSensorCount>{}, buffer, instructions);
+        }
+
+        /**
+         * @brief Updates data sensor using  the packet from a buffer. Reverse of recordData
+         *
+         * @param buffer Buffer to read data from
+         * 
+         * @tparam InstructionsSensorCount Number of sensors that the instructions contain (included and excluded)
+         */
+        template<size_t InstructionsSensorCount>
+        void readData(unsigned char* buffer, packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
+            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
+
+            readDataImpl(boost::mp11::make_index_sequence<InstructionsSensorCount>{}, buffer, instructions);
+        }
+
+
+        /**
          * @brief converts the elements in data to their "real values" (see SensorInfo.h for a definition)
          * 
          * @returns A tuple of the sensor data converted to their real values (see SensorInfo.h)
@@ -429,6 +458,35 @@ namespace cmbtl {
                         sensors_encoded++;
                     }
                 }(), 0)...};
+                (void)dummy;
+            }
+
+            template<size_t... Is>
+            inline void recordDataImpl(boost::mp11::index_sequence<Is...>, unsigned char *buffer, packet::PacketInstructions<NUM_SENSORS> const &packet) const {
+                size_t index = 0;
+                int dummy[] = {([=, &index](){
+                    if (packet[Is]) {
+                        typename SVTypeAt<Is> data = getData<Is>();
+                        memcpy(buffer + index, &data, sizeof(data));
+                        index += sizeof(data);
+                    }
+                }(), 0)...};
+
+                (void)dummy;
+            }
+
+            template<size_t... Is>
+            inline void readDataImpl(boost::mp11::index_sequence<Is...>, unsigned char *buffer, packet::PacketInstructions<NUM_SENSORS> const &packet) {
+                size_t index = 0;
+                int dummy[] = {([=, &index](){
+                    if (packet[Is]) {
+                        typename SVTypeAt<Is> data;
+                        memcpy(&data, buffer + index, sizeof(data));
+                        setData<Is>(data);
+                        index += sizeof(data);
+                    }
+                }(), 0)...};
+
                 (void)dummy;
             }
 
