@@ -217,13 +217,9 @@ namespace cmbtl {
          * 
          * @param instructions: Packet instructions for which sensors to encode
          * 
-         * @tparam InstructionsSensorCount: Total number of sensors that the instructions contain (included AND excluded)
-         * 
          * @return A BinaryBuffer which contains the encoded data
          */
-        template<size_t InstructionsSensorCount>
-        inline BinaryBuffer encodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
-            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
+        inline BinaryBuffer encodePacket(packet::PacketInstructions<NUM_SENSORS> const &instructions) {
             //Calculate total number of bits needed for the packet
             const uint32_t total_num_encoded_bits = packetEncodedBitSize(instructions);
 
@@ -250,15 +246,10 @@ namespace cmbtl {
          * 
          * @param buffer: A binary buffer which contains the encoded data that we wish to decode
          * 
-         * @tparam InstructionsSensorCount: Number of sensors that the instructions contain (included AND excluded)
-         * 
          * @return true if the packet instructions could be successfully decoded, false otherwise
          * 
          */
-        template<size_t InstructionsSensorCount>
-        inline bool decodePacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions, BinaryBuffer const &buffer) {
-            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
-
+        inline bool decodePacket(packet::PacketInstructions<NUM_SENSORS> const &instructions, BinaryBuffer const &buffer) {
             //Calculate total number of bits needed for the packet
             const uint32_t total_num_encoded_bits = packetEncodedBitSize(instructions);
 
@@ -280,14 +271,10 @@ namespace cmbtl {
          * @brief Records the sensors specified by the packet into a buffer. Best for quickly recording, not as space-efficient as encodePacket()
          * 
          * @param buffer: Buffer to record data to
-         * 
-         * @tparam InstructionsSensorCount: Number of sensors that the instructions contain (included AND excluded)
+         *
          */
-        template<size_t InstructionsSensorCount>
-        void recordData(unsigned char* buffer, packet::PacketInstructions<InstructionsSensorCount> const &instructions) const {
-            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
-
-            recordDataImpl(boost::mp11::make_index_sequence<InstructionsSensorCount>{}, buffer, instructions);
+        void recordData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) const {
+            recordDataImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, buffer, instructions);
         }
 
         /**
@@ -295,13 +282,9 @@ namespace cmbtl {
          *
          * @param buffer Buffer to read data from
          * 
-         * @tparam InstructionsSensorCount Number of sensors that the instructions contain (included and excluded)
          */
-        template<size_t InstructionsSensorCount>
-        void readData(unsigned char* buffer, packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
-            static_assert(InstructionsSensorCount <= NUM_SENSORS, "Template Parameter: InstructionsSensorCount must not exceed NUM_SENSORS!");
-
-            readDataImpl(boost::mp11::make_index_sequence<InstructionsSensorCount>{}, buffer, instructions);
+        void readData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) {
+            readDataImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, buffer, instructions);
         }
 
 
@@ -327,8 +310,8 @@ namespace cmbtl {
             return ss.str().c_str();
 
         }
-        template<size_t InstructionsSensorCount>
-        std::string serializeDataToJSONPacket(packet::PacketInstructions<InstructionsSensorCount> const &instructions) {
+        template<size_t NUM_SENSORS>
+        std::string serializeDataToJSONPacket(packet::PacketInstructions<NUM_SENSORS> const &instructions) {
             std::stringstream ss;
             ss << "{" << "\n";
             std::size_t sensor_count = instructions.count();
@@ -411,8 +394,7 @@ namespace cmbtl {
                 (this->*decodeFunctionTable[sensor_index])(buffer);
             }
 
-            template<size_t InstructionsSensorCount>
-            static inline uint32_t const packetEncodedBitSize(packet::PacketInstructions<InstructionsSensorCount> const &instructions) { 
+            static inline uint32_t const packetEncodedBitSize(packet::PacketInstructions<NUM_SENSORS> const &instructions) { 
                 uint32_t bit_size = 0;
                 for (size_t i = 0; i < instructions.size(); i++) {
                     if (instructions[i] == true) {
@@ -466,7 +448,7 @@ namespace cmbtl {
                 size_t index = 0;
                 int dummy[] = {([=, &index](){
                     if (packet[Is]) {
-                        typename SVTypeAt<Is> data = getData<Is>();
+                        SVTypeAt<Is> data = getData<Is>();
                         memcpy(buffer + index, &data, sizeof(data));
                         index += sizeof(data);
                     }
@@ -480,7 +462,7 @@ namespace cmbtl {
                 size_t index = 0;
                 int dummy[] = {([=, &index](){
                     if (packet[Is]) {
-                        typename SVTypeAt<Is> data;
+                        SVTypeAt<Is> data;
                         memcpy(&data, buffer + index, sizeof(data));
                         setData<Is>(data);
                         index += sizeof(data);
