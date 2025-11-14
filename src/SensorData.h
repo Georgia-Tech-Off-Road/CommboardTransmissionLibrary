@@ -270,11 +270,11 @@ namespace cmbtl {
         /**
          * @brief Records the sensors specified by the packet into a buffer. Best for quickly recording, not as space-efficient as encodePacket()
          * 
-         * @param buffer: Buffer to record data to
+         * @param buffer: Buffer to record data to, size should be determined by getRecordedDataSize()
          *
          */
-        void recordData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) const {
-            recordDataImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, buffer, instructions);
+        inline void recordData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) const {
+            return recordDataImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, buffer, instructions);
         }
 
         /**
@@ -283,8 +283,17 @@ namespace cmbtl {
          * @param buffer Buffer to read data from
          * 
          */
-        void readData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) {
+        inline void readData(unsigned char* buffer, packet::PacketInstructions<NUM_SENSORS> const &instructions) {
             readDataImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, buffer, instructions);
+        }
+
+        /**
+         * @brief retrieves the size (in bytes) of the buffer that recordData() requires
+         * 
+         * @returns size in bytes of the recorded binary packet
+         */
+        inline size_t getRecordedDataSize(packet::PacketInstructions<NUM_SENSORS> const &instructions) const {
+            return getRecordedDataSizeImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, instructions);
         }
 
 
@@ -301,7 +310,7 @@ namespace cmbtl {
          * @brief Serializes  data to JSON format
          * Serializes all current data to JSON format by calling each sensor's serializeToJSON() (See SensorInfo.h)
          */
-        std::string serializeDataToJSON() const {
+        inline std::string serializeDataToJSON() const {
             std::stringstream ss;
             ss << "{" << "\n";
             serializeDataToJSONImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, ss);
@@ -311,7 +320,7 @@ namespace cmbtl {
 
         }
         template<size_t NUM_SENSORS>
-        std::string serializeDataToJSONPacket(packet::PacketInstructions<NUM_SENSORS> const &instructions) {
+        inline std::string serializeDataToJSONPacket(packet::PacketInstructions<NUM_SENSORS> const &instructions) {
             std::stringstream ss;
             ss << "{" << "\n";
             std::size_t sensor_count = instructions.count();
@@ -322,7 +331,7 @@ namespace cmbtl {
         }
 
         template<size_t N>
-        void printSensorConfig(std::ostream& os) const {
+        inline void printSensorConfig(std::ostream& os) const {
             using SensorType = SensorAt<N>;
 
             // Print sensor configuration line
@@ -368,7 +377,7 @@ namespace cmbtl {
          *
          * @param os: Output stream to print to (default: std::cout)
          */
-        void printConfig(packet::PacketInstructions<NUM_SENSORS> const &instructions, std::ostream& os = std::cout) const {
+        inline void printConfig(packet::PacketInstructions<NUM_SENSORS> const &instructions, std::ostream& os = std::cout) const {
             // Print config header
             os << "sensor name, type, bits\n";
             printConfigImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, os, instructions);
@@ -377,7 +386,7 @@ namespace cmbtl {
         /**
          * @brief Constructor which initializes crucial variables to default values
          */
-        SensorData() :
+        inline SensorData() :
         encodeFunctionTable(createEncodeDataTable(boost::mp11::make_index_sequence<NUM_SENSORS>{})),
         decodeFunctionTable(createDecodeDataTable(boost::mp11::make_index_sequence<NUM_SENSORS>{}))
         {};
@@ -470,6 +479,19 @@ namespace cmbtl {
                 }(), 0)...};
 
                 (void)dummy;
+            }
+            template<size_t... Is>
+            inline size_t getRecordedDataSizeImpl(boost::mp11::index_sequence<Is...> , packet::PacketInstructions<NUM_SENSORS> const &packet) {
+                size_t total_size = 0;
+                int dummy[] = {([=, &total_size](){
+                    if (packet[Is]) {
+                        total_size += sizeof(SVTypeAt<Is>);
+                    }
+                }(), 0)...};
+
+                (void)dummy;
+
+                return total_size;
             }
 
             /**
