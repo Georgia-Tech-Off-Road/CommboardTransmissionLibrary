@@ -313,11 +313,28 @@ namespace cmbtl {
         void printSensorConfig(std::ostream& os) const {
             using SensorType = SensorAt<N>;
 
-            os << "Sensor #" << N << ":\n";
-            os << "  Stored Type:  " << boost::typeindex::type_id<typename SensorType::STORED_VALUE>().pretty_name() << "\n";
-            os << "  Real Type:    " << boost::typeindex::type_id<typename SensorType::REAL_VALUE>().pretty_name() << "\n";
-            os << "  Bit Size:     " << SensorType::ENCODED_BIT_SIZE << "\n";
-            os << "\n";
+            // Print sensor configuration line
+            std::string sensorName;
+
+            std::stringstream insertion_stream;
+
+            typename SensorType::REAL_VALUE defaultVal;
+
+            SensorType::serializeToJSON(defaultVal, insertion_stream);
+
+
+            //String before : is sensor name
+            std::getline(insertion_stream, sensorName, ':');
+
+            // Remove quotes from beginning and end of sensor name
+            if (sensorName.length() >= 2 && sensorName.front() == '"' && sensorName.back() == '"') {
+                sensorName = sensorName.substr(1, sensorName.length() - 2);
+            }
+
+
+            os << sensorName << ",";
+            os << boost::typeindex::type_id<typename SensorType::REAL_VALUE>().pretty_name() << ",";
+            os << SensorType::ENCODED_BIT_SIZE << "\n";
         }
 
         /**
@@ -340,6 +357,8 @@ namespace cmbtl {
          * @param os: Output stream to print to (default: std::cout)
          */
         void printConfig(packet::PacketInstructions<NUM_SENSORS> const &instructions, std::ostream& os = std::cout) const {
+            // Print config header
+            os << "sensor name, type, bits\n";
             printConfigImpl(boost::mp11::make_index_sequence<NUM_SENSORS>{}, os, instructions);
         }
 

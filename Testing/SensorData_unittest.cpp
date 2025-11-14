@@ -473,31 +473,90 @@ TEST(SensorDataTests, SerializeDiagnosticDataPacketToJSON) {
 // Tests for printConfiguration
 // ================================================================================================
 
-// Test configuration printing
-TEST(SensorDataTests, PrintConfiguration) {
+// Test configuration printing with all sensors
+TEST(SensorDataTests, PrintConfigurationAllSensors) {
     TestSensorDataType sensorData;
 
-    // Print configuration to stdout
-    std::cout << "\n=== Testing printConfiguration() ===\n";
-    sensorData.printConfig(createAllSensorsPacket());
-
-    // Also test printing to a stringstream to verify it works with different streams
+    // Print configuration to stringstream
     std::stringstream ss;
-    sensorData.printConfig(createAllSensorsPacket());
+    sensorData.printConfig(createAllSensorsPacket(), ss);
     std::string configOutput = ss.str();
 
-    // Verify all sensors are listed
-    ASSERT_NE(configOutput.find("Sensor #0"), std::string::npos);
-    ASSERT_NE(configOutput.find("Sensor #1"), std::string::npos);
-    ASSERT_NE(configOutput.find("Sensor #2"), std::string::npos);
-    ASSERT_NE(configOutput.find("Sensor #3"), std::string::npos);
-    ASSERT_NE(configOutput.find("Sensor #4"), std::string::npos);
-    ASSERT_NE(configOutput.find("Sensor #5"), std::string::npos);
+    // Print for manual inspection
+    std::cout << "\n=== All Sensors Configuration ===\n" << configOutput << std::endl;
 
-    // Verify each sensor has type and bit size information
-    ASSERT_NE(configOutput.find("Stored Type:"), std::string::npos);
-    ASSERT_NE(configOutput.find("Real Type:"), std::string::npos);
-    ASSERT_NE(configOutput.find("Bit Size:"), std::string::npos);
+    // Verify CSV header is present
+    ASSERT_NE(configOutput.find("sensor name, type, bits"), std::string::npos);
 
-    std::cout << "=== Configuration Output ===\n" << configOutput << std::endl;
+    // Verify all sensor names are present (without quotes)
+    ASSERT_NE(configOutput.find("timestamp"), std::string::npos);
+    ASSERT_NE(configOutput.find("temperature"), std::string::npos);
+    ASSERT_NE(configOutput.find("pressure"), std::string::npos);
+    ASSERT_NE(configOutput.find("rpm"), std::string::npos);
+    ASSERT_NE(configOutput.find("voltage"), std::string::npos);
+    ASSERT_NE(configOutput.find("status"), std::string::npos);
+
+    // Verify no quotes around sensor names
+    ASSERT_EQ(configOutput.find("\"timestamp\""), std::string::npos);
+    ASSERT_EQ(configOutput.find("\"temperature\""), std::string::npos);
+    ASSERT_EQ(configOutput.find("\"pressure\""), std::string::npos);
+
+    // Verify bit sizes are present
+    ASSERT_NE(configOutput.find("32"), std::string::npos);  // timestamp
+    ASSERT_NE(configOutput.find("20"), std::string::npos);  // temperature
+    ASSERT_NE(configOutput.find("21"), std::string::npos);  // pressure
+    ASSERT_NE(configOutput.find("16"), std::string::npos);  // rpm & voltage
+    ASSERT_NE(configOutput.find("1"), std::string::npos);   // status
+}
+
+// Test configuration printing with critical data packet only
+TEST(SensorDataTests, PrintConfigurationCriticalDataOnly) {
+    TestSensorDataType sensorData;
+
+    // Print configuration to stringstream
+    std::stringstream ss;
+    sensorData.printConfig(createCriticalDataPacket(), ss);
+    std::string configOutput = ss.str();
+
+    // Print for manual inspection
+    std::cout << "\n=== Critical Data Configuration ===\n" << configOutput << std::endl;
+
+    // Verify CSV header is present
+    ASSERT_NE(configOutput.find("sensor name, type, bits"), std::string::npos);
+
+    // Verify only critical sensor names are present
+    ASSERT_NE(configOutput.find("timestamp"), std::string::npos);
+    ASSERT_NE(configOutput.find("temperature"), std::string::npos);
+    ASSERT_NE(configOutput.find("pressure"), std::string::npos);
+    ASSERT_NE(configOutput.find("rpm"), std::string::npos);
+
+    // Verify diagnostic sensors are NOT present
+    ASSERT_EQ(configOutput.find("voltage"), std::string::npos);
+    ASSERT_EQ(configOutput.find("status"), std::string::npos);
+}
+
+// Test configuration printing with diagnostic data packet only
+TEST(SensorDataTests, PrintConfigurationDiagnosticDataOnly) {
+    TestSensorDataType sensorData;
+
+    // Print configuration to stringstream
+    std::stringstream ss;
+    sensorData.printConfig(createDiagnosticDataPacket(), ss);
+    std::string configOutput = ss.str();
+
+    // Print for manual inspection
+    std::cout << "\n=== Diagnostic Data Configuration ===\n" << configOutput << std::endl;
+
+    // Verify CSV header is present
+    ASSERT_NE(configOutput.find("sensor name, type, bits"), std::string::npos);
+
+    // Verify only diagnostic sensor names are present
+    ASSERT_NE(configOutput.find("voltage"), std::string::npos);
+    ASSERT_NE(configOutput.find("status"), std::string::npos);
+
+    // Verify critical sensors are NOT present
+    ASSERT_EQ(configOutput.find("timestamp"), std::string::npos);
+    ASSERT_EQ(configOutput.find("temperature"), std::string::npos);
+    ASSERT_EQ(configOutput.find("pressure"), std::string::npos);
+    ASSERT_EQ(configOutput.find("rpm"), std::string::npos);
 }
