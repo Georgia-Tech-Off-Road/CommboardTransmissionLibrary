@@ -354,7 +354,7 @@ namespace cmbtl {
 
 
             os << sensorName << ",";
-            os << boost::typeindex::type_id<typename SensorType::REAL_VALUE>().pretty_name() << ",";
+            os << boost::typeindex::type_id<typename SensorType::STORED_VALUE>().pretty_name() << ",";
             os << SensorType::ENCODED_BIT_SIZE << "\n";
         }
 
@@ -481,7 +481,7 @@ namespace cmbtl {
                 (void)dummy;
             }
             template<size_t... Is>
-            inline size_t getRecordedDataSizeImpl(boost::mp11::index_sequence<Is...> , packet::PacketInstructions<NUM_SENSORS> const &packet) {
+            inline size_t getRecordedDataSizeImpl(boost::mp11::index_sequence<Is...> , packet::PacketInstructions<NUM_SENSORS> const &packet) const {
                 size_t total_size = 0;
                 int dummy[] = {([=, &total_size](){
                     if (packet[Is]) {
