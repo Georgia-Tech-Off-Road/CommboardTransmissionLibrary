@@ -17,4 +17,6 @@ function(add_cmbtl_test test_name source_file)
 endfunction()
 
 add_cmbtl_test(SensorInfoTests SensorInfo_unittest.cpp)
-add_cmbtl_test(SensorDataTests SensorData_unittest.cpp)
+add_cmbtl_test(SensorData_Record-Read-Data_Tests SensorData_Record-Read-Data_unittest.cpp)
+add_cmbtl_test(SensorData_Encode-Decode-Packet_Tests SensorData_Encode-Decode-Packet_unittest.cpp)
+add_cmbtl_test(SensorData_Serialize-To-JSON_Tests SensorData_Serialize-To-JSON_unittest.cpp)

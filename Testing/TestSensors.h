@@ -33,7 +33,7 @@ namespace test {
     // TimeStamp - 32-bit unsigned integer
     using TimeStamp_SENSOR_INFO = DefaultSensorWithName<
         boost::endian::big_uint32_t,
-        boost::endian::big_uint32_t,
+        uint32_t,
         32,
         TimeStampGetName
     >;
@@ -63,7 +63,7 @@ namespace test {
     // RPM - 16-bit unsigned integer
     using RPM_SENSOR_INFO = DefaultSensorWithName<
         boost::endian::big_uint16_t,
-        boost::endian::big_uint16_t,
+        uint16_t,
         16,
         RPMGetName
     >;
